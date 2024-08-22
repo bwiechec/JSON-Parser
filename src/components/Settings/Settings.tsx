@@ -7,7 +7,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  Toolbar,
   Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
@@ -17,7 +16,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { useEffect, useState } from "react";
 import { DEFAULT_SETTINGS } from "../../helper/defaults";
 import { Settings as SettingsInterface } from "../../types/settings";
-import { GitHub, LinkedIn } from "@mui/icons-material";
+import { GitHub } from "@mui/icons-material";
 
 const INDENTATION_OPTIONS = ["2 spaces", "4 spaces", "Tabulation"];
 const DECLARATION_TYPE_OPTIONS = ["Interface", "Type"];
