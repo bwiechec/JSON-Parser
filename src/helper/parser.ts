@@ -5,54 +5,38 @@
 // czy robić np. Root = Root2 [] i Root2 osobno czy od razu Root[]
 // 4. Komponent code mirror, lub podobne: https://blog.logrocket.com/best-code-editor-components-react/
 
+import { Settings } from "../types/settings";
+
 export const firstLetterToUpperCase = (string: string) => {
   return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-export const parseJsonToTypeScript = (
-  json: Object | Object[],
-  name: string = "root"
-) => {
-  const tsResponse: (any[][] | (string | String[])[])[] = [];
+type tsResponse = (any[][] | (string | String[])[])[];
 
-  const mapEntries = (interfaceName: string, object: Object | Object[]) => {
-    interfaceName = firstLetterToUpperCase(interfaceName);
-    const entries = Array.isArray(object)
-      ? Object.entries(object[0])
-      : Object.entries(object);
+const INDENTATION = {
+  "2 spaces": "  ",
+  "4 spaces": "    ",
+  Tabulation: "\t",
+};
 
-    const mappedEntries: String[] = [];
-
-    entries.forEach((entry) => {
-      if (typeof entry[1] === "object") {
-        mappedEntries.push(`${entry[0]}: ${mapEntries(entry[0], entry[1])}`);
-      } else
-        mappedEntries.push(
-          `${entry[0]}: ${firstLetterToUpperCase(typeof entry[1])}`
-        );
-    });
-    if (Array.isArray(object)) {
-      tsResponse.unshift([interfaceName + "2", mappedEntries]);
-      tsResponse.unshift([interfaceName, interfaceName + "2[]"]);
-      return interfaceName + "2[]";
-    }
-    tsResponse.unshift([interfaceName, mappedEntries]);
-
-    return interfaceName;
-  };
-
-  mapEntries(name, json);
-
+const mapResponseToString = (tsResponse: tsResponse, settings: Settings) => {
   let returnString = "";
+
   tsResponse.forEach((interfaceEntry, key) => {
     if (typeof interfaceEntry[1] === "string") {
-      returnString += `export type ${interfaceEntry[0]} = ${interfaceEntry[1]}\n\n`;
       return;
     }
 
-    returnString += `export interface ${interfaceEntry[0]} {\n`;
+    const isType = settings.declarationType === "Type";
+
+    returnString += `export ${settings.declarationType.toLowerCase()} ${
+      interfaceEntry[0]
+    }${isType ? " = " : " "}{\n`;
+
     interfaceEntry[1].forEach((types) => {
-      returnString += `\t${types}\n`;
+      returnString += `${INDENTATION[settings?.indentation]}${types}${
+        isType ? ";" : ""
+      }\n`;
     });
 
     if (key === tsResponse.length - 1) {
@@ -62,6 +46,51 @@ export const parseJsonToTypeScript = (
 
     returnString += `}\n\n`;
   });
+
+  return returnString;
+};
+
+const mapEntries = (interfaceName: string, object: Object | Object[]) => {
+  const tsResponse: tsResponse = [];
+  interfaceName = firstLetterToUpperCase(interfaceName);
+  const entries = Array.isArray(object)
+    ? Object.entries(object[0])
+    : Object.entries(object);
+
+  const mappedEntries: String[] = [];
+
+  entries.forEach((entry) => {
+    if (typeof entry[1] === "object") {
+      const recursiveResponse = mapEntries(entry[0], entry[1]);
+
+      mappedEntries.push(`${entry[0]}: ${recursiveResponse.interfaceName}`);
+      tsResponse.push(...recursiveResponse.tsResponse);
+    } else
+      mappedEntries.push(
+        `${entry[0]}: ${firstLetterToUpperCase(typeof entry[1])}`
+      );
+  });
+  if (Array.isArray(object)) {
+    tsResponse.unshift([interfaceName, mappedEntries]);
+    return { interfaceName: interfaceName + "[]", tsResponse };
+  }
+  tsResponse.unshift([interfaceName, mappedEntries]);
+
+  return { interfaceName, tsResponse };
+};
+
+export const parseJsonToTypeScript = (
+  json: Object | Object[],
+  name: string = "root",
+  settings?: Settings
+) => {
+  if (!settings) {
+    return "";
+  }
+
+  const { tsResponse } = mapEntries(name, json);
+
+  const returnString = mapResponseToString(tsResponse, settings);
 
   return returnString;
 };

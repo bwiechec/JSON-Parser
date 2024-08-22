@@ -12,6 +12,13 @@ body {
   min-height: 100vh;
   max-width: 100%;
   overflow: hidden;
+  height: 100%;
+}
+
+#root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {

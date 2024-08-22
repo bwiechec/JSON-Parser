@@ -1,8 +1,9 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
-import { Box, Snackbar, Typography } from "@mui/material";
+import { Box, Snackbar, SnackbarCloseReason, Typography } from "@mui/material";
 import { PasteButton } from "../PasteButton/PasteButton";
 import { CopyButton } from "../CopyButton/CopyButton";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface SnackbarData {
   open: boolean;
@@ -13,6 +14,7 @@ interface CodeBlockProps {
   title: string;
   code: string;
   handleCodeChange?: (value: string) => void;
+  setSnackbarData?: (data: SnackbarData) => void;
   snackbarData?: SnackbarData;
   dataDirection?: "write" | "read";
 }
@@ -22,10 +24,37 @@ export const CodeBlock = ({
   title,
   handleCodeChange,
   snackbarData,
+  setSnackbarData,
   dataDirection,
 }: CodeBlockProps) => {
+  const handleCopy = () => {
+    setSnackbarData?.({ open: true, message: "Copied to clipboard" });
+    navigator.clipboard.writeText(code);
+  };
+
+  const handlePaste = () => {
+    navigator.clipboard.readText().then((text) => handleCodeChange?.(text));
+  };
+
+  const handleClose = (
+    _event: React.SyntheticEvent | Event,
+    reason?: SnackbarCloseReason
+  ) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setSnackbarData?.({ open: true, message: "Copied to clipboard" });
+    setSnackbarData?.({ open: false, message: snackbarData?.message ?? "" });
+  };
+
   return (
-    <Box height="100dvh" width="40vw" border="1px solid #000">
+    <Box
+      height="100%"
+      border="1px solid #000"
+      overflow="hidden"
+      maxWidth="100%"
+    >
       <Box
         bgcolor="#1e1e1e"
         color="white"
@@ -35,15 +64,9 @@ export const CodeBlock = ({
       >
         <Typography variant="h6">{title}</Typography>
         {dataDirection === "write" ? (
-          <PasteButton
-            onClick={() =>
-              navigator.clipboard
-                .readText()
-                .then((text) => handleCodeChange?.(text))
-            }
-          />
+          <PasteButton onClick={handlePaste} />
         ) : (
-          <CopyButton onClick={() => navigator.clipboard.writeText(code)} />
+          <CopyButton onClick={handleCopy} />
         )}
       </Box>
       <CodeMirror
@@ -57,7 +80,15 @@ export const CodeBlock = ({
           height: "100%",
         }}
       />
-      <Snackbar open={snackbarData?.open} message={snackbarData?.message} />
+      {snackbarData && (
+        <Snackbar
+          open={snackbarData?.open}
+          message={snackbarData?.message}
+          autoHideDuration={3000}
+          onClose={handleClose}
+          action={<CloseIcon fontSize="small" onClick={handleClose} />}
+        />
+      )}
     </Box>
   );
 };
